@@ -5,6 +5,7 @@ import ar.edu.utn.frc.tup.lciii.modelResponse.MatchResponse;
 import ar.edu.utn.frc.tup.lciii.modelResponse.TeamCountryResponse;
 import ar.edu.utn.frc.tup.lciii.modelResponse.TeamMatchResponse;
 import ar.edu.utn.frc.tup.lciii.models.Pool;
+import ar.edu.utn.frc.tup.lciii.models.Team;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -86,7 +87,39 @@ class PoolServiceTest {
         teamCountryResponses.add(teamCountry1);
         teamCountryResponses.add(teamCountry2);
     }
+    @Test
+    void getPoolsFallbackTest() {
+        String pool = "A";
+        Throwable throwable = new RuntimeException("Test exception");
 
+        List<Pool> fallbackPools = poolService.getPoolsFallback(pool, throwable);
+
+        assertNotNull(fallbackPools);
+        assertEquals(2, fallbackPools.size());
+
+        for (Pool poolObj : fallbackPools) {
+            assertNotNull(poolObj.getPoolId());
+            assertEquals(4, poolObj.getTeams().size());
+
+            for (Team team : poolObj.getTeams()) {
+                assertNotNull(team.getTeamId());
+                assertNotNull(team.getTeamName());
+                assertNotNull(team.getCountry());
+                assertTrue(team.getMatchesPlayed() >= 0 && team.getMatchesPlayed() < 10);
+                assertTrue(team.getWins() >= 0 && team.getWins() < 5);
+                assertTrue(team.getDraws() >= 0 && team.getDraws() < 3);
+                assertTrue(team.getLosses() >= 0 && team.getLosses() < 5);
+                assertTrue(team.getPointsFor() >= 0 && team.getPointsFor() < 100);
+                assertTrue(team.getPointsAgainst() >= 0 && team.getPointsAgainst() < 100);
+                assertEquals(team.getPointsFor() - team.getPointsAgainst(), team.getPointsDifferential());
+                assertTrue(team.getTriesMade() >= 0 && team.getTriesMade() < 20);
+                assertTrue(team.getBonusPoints() >= 0 && team.getBonusPoints() < 5);
+                assertTrue(team.getPoints() >= 0 && team.getPoints() < 30);
+                assertTrue(team.getTotalYellowCards() >= 0 && team.getTotalYellowCards() < 10);
+                assertTrue(team.getTotalRedCards() >= 0 && team.getTotalRedCards() < 5);
+            }
+        }
+    }
     @Test
     void getPoolsTest() {
         when(httpClient.get("https://my-json-server.typicode.com/LCIV-2023/fake-api-rwc2023/matches",

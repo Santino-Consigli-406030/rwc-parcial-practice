@@ -6,15 +6,13 @@ import ar.edu.utn.frc.tup.lciii.modelResponse.TeamCountryResponse;
 import ar.edu.utn.frc.tup.lciii.modelResponse.TeamMatchResponse;
 import ar.edu.utn.frc.tup.lciii.models.Pool;
 import ar.edu.utn.frc.tup.lciii.models.Team;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -22,9 +20,9 @@ public class PoolService {
 
     private final HttpClient httpClient;
     private final String url = "https://my-json-server.typicode.com/LCIV-2023/fake-api-rwc2023/matches";
+
+    @CircuitBreaker(name = "default", fallbackMethod = "getPoolsFallback")
     public List<Pool> getPools(String pool) {
-        //basicamente hace la peticion y si el metodo tiene como parametro una pool filtra los matches de esa pool
-        //sino devuelve todos los matches y calcula todas las standings posibles de todas las pools
         ResponseEntity<List<MatchResponse>> response =
                 httpClient.get(url, new ParameterizedTypeReference<List<MatchResponse>>() {});
         if (response.getBody() != null) {
@@ -37,6 +35,42 @@ public class PoolService {
             return null;
         }
     }
+
+    public List<Pool> getPoolsFallback(String pool, Throwable throwable) {
+        List<Pool> pools = new ArrayList<>();
+        Random random = new Random();
+
+        for (int i = 1; i <= 2; i++) {
+            Pool poolObj = new Pool();
+            poolObj.setPoolId("Pool" + i);
+
+            List<Team> teams = new ArrayList<>();
+            for (int j = 1; j <= 4; j++) {
+                Team team = new Team();
+                team.setTeamId(j);
+                team.setTeamName("Team" + j);
+                team.setCountry("Country" + j);
+                team.setMatchesPlayed(random.nextInt(10));
+                team.setWins(random.nextInt(5));
+                team.setDraws(random.nextInt(3));
+                team.setLosses(random.nextInt(5));
+                team.setPointsFor(random.nextInt(100));
+                team.setPointsAgainst(random.nextInt(100));
+                team.setPointsDifferential(team.getPointsFor() - team.getPointsAgainst());
+                team.setTriesMade(random.nextInt(20));
+                team.setBonusPoints(random.nextInt(5));
+                team.setPoints(random.nextInt(30));
+                team.setTotalYellowCards(random.nextInt(10));
+                team.setTotalRedCards(random.nextInt(5));
+                teams.add(team);
+            }
+            poolObj.setTeams(teams);
+            pools.add(poolObj);
+        }
+
+        return pools;
+    }
+
 
     private List<Pool> calculateStandings(List<MatchResponse> matches) {
         Map<String, List<Team>> poolTeamsMap = new HashMap<>();
